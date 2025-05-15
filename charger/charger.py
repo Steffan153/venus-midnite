@@ -7,6 +7,38 @@
 # Author:	Jan Bakuwel / YSolar NZ Ltd
 # License:	GNU General Public License v3.0
 
+
+
+VERSION	= "v2.0"
+
+MIDNITE_IPS	= [
+  ("192.168.1.223", "Midnite Classic Charge Controller 1"),
+  ("192.168.1.170", "Midnite Classic Charge Controller 2"),
+  ("192.168.1.226", "Midnite Classic Charge Controller 3"),
+  ("192.168.1.113", "Midnite Classic Charge Controller 4"),
+  ("192.168.1.220", "Midnite Classic Charge Controller 5"),
+  ("192.168.1.190", "Midnite Classic Charge Controller 6"),
+  ("192.168.1.218", "Midnite Classic Charge Controller 7"),
+]
+
+
+MIDNITE_INTERVAL	= 5
+
+
+MIDNITE_VICTRON	= {
+	0: 0,	# Midnite Resting:	Victron Off
+	3: 4,	# Midnite Absorb:		Victron Absorption
+	4: 3,	# Midnite BulkMPPT:	Victron Bulk
+	5: 5,	# Midnite Float:		Victron Float
+	6: 5,	# Midnite FloatMPPT:	Victron Float
+	7: 7,	# Midnite Equalize:	Victron Equalize
+	10:	3,	# HyperVOC:				Victron Bulk - I guess
+	18:	7,	# EqualizeMPPT:		Victron Equalize
+}
+
+
+
+
 from dbus.mainloop.glib import DBusGMainLoop
 from gi.repository import GLib
 import argparse
@@ -21,7 +53,6 @@ sys.path.insert (1, os.path.join (os.path.dirname( __file__), '/opt/victronenerg
 from vedbus import VeDbusService
 from logger import setup_logging
 
-import config
 
 
 def twos_complement (uValue, iBits):
@@ -45,10 +76,10 @@ class readMidnite ():
 		self.service.add_path('/ProductName',				'Midnite Classic Solar Charger')
 		self.service.add_path('/CustomName',				name)
 		self.service.add_path('/Mgmt/ProcessName',		'charger.py')
-		self.service.add_path('/Mgmt/ProcessVersion',	config.VERSION)
+		self.service.add_path('/Mgmt/ProcessVersion',	VERSION)
 		self.service.add_path('/Mgmt/Connection',			'dbus')
-		self.service.add_path('/FirmwareVersion',			config.VERSION)
-		self.service.add_path('/HardwareVersion',			config.VERSION)
+		self.service.add_path('/FirmwareVersion',			VERSION)
+		self.service.add_path('/HardwareVersion',			VERSION)
 		self.service.add_path('/State',						None, writeable=True)
 		self.service.add_path('/Pv/V',						None, writeable=True, gettextcallback=lambda a, x: "{:.0f}V".format(x))
 		self.service.add_path('/Pv/I',						None, writeable=True, gettextcallback=lambda a, x: "{:.1f}A".format(x))
@@ -87,8 +118,8 @@ class readMidnite ():
 				MIDNITE_STATE	= (HR41.registers[19] & 0x00FF)
 				SHUNT_A			= float (twos_complement(HR43.registers[70],16))/10
 
-				#logger.info ('Updating: State=%d, V=%f, A=%f, T=%f, CV=%f, CA=%f' % (config.MIDNITE_VICTRON[CHARGE_STATE], PV_V, PV_A, BATT_T, BATT_V, BATT_A))
-				self.service['/State']				= config.MIDNITE_VICTRON[CHARGE_STATE]
+				#logger.info ('Updating: State=%d, V=%f, A=%f, T=%f, CV=%f, CA=%f' % (MIDNITE_VICTRON[CHARGE_STATE], PV_V, PV_A, BATT_T, BATT_V, BATT_A))
+				self.service['/State']				= MIDNITE_VICTRON[CHARGE_STATE]
 				self.service['/Pv/V']				= PV_V
 				self.service['/Pv/I']				= PV_A
 				self.service['/Yield/Power']		= round (PV_V * PV_A)
@@ -119,8 +150,8 @@ class readMidnite ():
 logger = setup_logging (debug=False)
 DBusGMainLoop (set_as_default=True)
 
-for i, (ip, name) in enumerate(config.MIDNITE_IPS):
-	t = readMidnite (ip, config.MIDNITE_INTERVAL, name, 100 + i)
+for i, (ip, name) in enumerate(MIDNITE_IPS):
+	t = readMidnite (ip, MIDNITE_INTERVAL, name, 100 + i)
 	t.run ()
 
 logger.info('Connected to dbus, and switching over to GLib.MainLoop() (= event based)')
