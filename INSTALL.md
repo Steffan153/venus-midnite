@@ -14,9 +14,7 @@ MQTT_TOPIC                      = <Topic to use for MQTT messages>
 3. Add the following lines to your /data/rcS.local
 
 ```
-cd /service
-ln -s /data/classic/battery/service battery
-ln -s /data/classic/charger/service charger
+ln -s /data/classic/charger/service /service/charger
 ```
 
 4. Reboot

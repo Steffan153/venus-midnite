@@ -33,7 +33,7 @@ def twos_complement (uValue, iBits):
 
 class readMidnite ():
 
-	def __init__ (self, sIP, iFrequency):
+	def __init__ (self, sIP, iFrequency, name, instance):
 		self.sIP				= sIP
 		self.iFrequency   = iFrequency
 		self.classic		= ModbusClient (self.sIP, port=502)
@@ -41,8 +41,9 @@ class readMidnite ():
 
 		logger.info ('Initialising Midnite thread: IP=%s, Freq=%d' % (self.sIP, self.iFrequency))
 		self.service = VeDbusService (servicename='com.victronenergy.solarcharger.midnite', register=False)
-		self.service.add_path('/DeviceInstance',			0)
+		self.service.add_path('/DeviceInstance',			instance)
 		self.service.add_path('/ProductName',				'Midnite Classic Solar Charger')
+		self.service.add_path('/CustomName',				name)
 		self.service.add_path('/Mgmt/ProcessName',		'charger.py')
 		self.service.add_path('/Mgmt/ProcessVersion',	config.VERSION)
 		self.service.add_path('/Mgmt/Connection',			'dbus')
@@ -117,8 +118,10 @@ class readMidnite ():
 
 logger = setup_logging (debug=False)
 DBusGMainLoop (set_as_default=True)
-t = readMidnite (config.MIDNITE_IP, config.MIDNITE_INTERVAL)
-t.run ()
+
+for i, (ip, name) in enumerate(config.MIDNITE_IPS):
+	t = readMidnite (ip, config.MIDNITE_INTERVAL, name, 100 + i)
+	t.run ()
 
 logger.info('Connected to dbus, and switching over to GLib.MainLoop() (= event based)')
 mainloop = GLib.MainLoop()
